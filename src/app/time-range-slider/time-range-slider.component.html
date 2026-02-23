@@ -1,0 +1,62 @@
+<div class="time-range-slider" [class.disabled]="disabled">
+  <!-- Current selection display -->
+  <div class="selection-display">
+    <span class="selection-label">{{ selectionStartLabel }}</span>
+    <span class="selection-separator">—</span>
+    <span class="selection-label">{{ selectionEndLabel }}</span>
+  </div>
+
+  <!-- Slider with zoom controls -->
+  <div class="slider-row">
+    <!-- Zoom out button -->
+    <button
+      type="button"
+      class="zoom-btn zoom-out"
+      [disabled]="!canZoomOut || disabled"
+      (click)="zoomOut()"
+      title="Zoom out"
+    >
+      <i class="pi pi-minus"></i>
+    </button>
+
+    <!-- Slider container -->
+    <div class="slider-container">
+      <p-slider
+        [(ngModel)]="sliderValues"
+        [range]="true"
+        [min]="0"
+        [max]="sliderMax"
+        [disabled]="disabled"
+        (onChange)="onSliderChange($event.values)"
+      ></p-slider>
+
+      <!-- Tick marks -->
+      <div class="tick-container">
+        <div
+          *ngFor="let tick of tickLabels"
+          class="tick"
+          [style.left.%]="tick.position"
+        >
+          <div class="tick-mark"></div>
+          <div class="tick-label">{{ tick.label }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Zoom in button -->
+    <button
+      type="button"
+      class="zoom-btn zoom-in"
+      [disabled]="!canZoomIn || disabled"
+      (click)="zoomIn()"
+      title="Zoom in"
+    >
+      <i class="pi pi-plus"></i>
+    </button>
+  </div>
+
+  <!-- Granularity indicator -->
+  <div class="granularity-indicator">
+    {{ currentLevel | titlecase }}
+  </div>
+</div>

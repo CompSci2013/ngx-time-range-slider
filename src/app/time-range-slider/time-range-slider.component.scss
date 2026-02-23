@@ -1,0 +1,137 @@
+.time-range-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  &.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+}
+
+.selection-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+
+  .selection-label {
+    padding: 4px 8px;
+    background: #f0f0f0;
+    border-radius: 4px;
+  }
+
+  .selection-separator {
+    color: #999;
+  }
+}
+
+.slider-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    background: #f0f0f0;
+    border-color: #999;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  i {
+    font-size: 12px;
+    color: #666;
+  }
+}
+
+.slider-container {
+  flex: 1;
+  position: relative;
+  padding-bottom: 32px; // Space for tick labels
+
+  ::ng-deep .p-slider {
+    background: #e0e0e0;
+    border-radius: 4px;
+    height: 8px;
+
+    .p-slider-range {
+      background: #3b82f6;
+    }
+
+    .p-slider-handle {
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border: 2px solid #3b82f6;
+      border-radius: 50%;
+      margin-top: -5px;
+      transition: transform 0.1s;
+
+      &:hover {
+        transform: scale(1.1);
+      }
+
+      &:focus {
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+      }
+    }
+  }
+}
+
+.tick-container {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  right: 0;
+  height: 28px;
+}
+
+.tick {
+  position: absolute;
+  transform: translateX(-50%);
+
+  .tick-mark {
+    width: 1px;
+    height: 6px;
+    background: #ccc;
+    margin: 0 auto;
+  }
+
+  .tick-label {
+    font-size: 10px;
+    color: #666;
+    white-space: nowrap;
+    margin-top: 2px;
+    text-align: center;
+  }
+}
+
+.granularity-indicator {
+  text-align: center;
+  font-size: 11px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
