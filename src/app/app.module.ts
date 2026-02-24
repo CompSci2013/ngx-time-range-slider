@@ -4,7 +4,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ReactiveFormsModule } from '@angular/forms';
 
 import { AppComponent } from './app.component';
-import { TimeRangeSliderModule } from './time-range-slider';
+import { TimeRangeSliderModule } from 'time-range-slider';
 
 @NgModule({
   declarations: [

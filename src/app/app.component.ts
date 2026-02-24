@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { DateRange } from './time-range-slider';
+import { DateRange } from 'time-range-slider';
 
 @Component({
   selector: 'app-root',

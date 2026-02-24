@@ -105,6 +105,37 @@
           }
         }
       }
+    },
+    "time-range-slider": {
+      "projectType": "library",
+      "root": "projects/time-range-slider",
+      "sourceRoot": "projects/time-range-slider/src",
+      "prefix": "ntr",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "projects/time-range-slider/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/time-range-slider/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/time-range-slider/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "projects/time-range-slider/src/test.ts",
+            "tsConfig": "projects/time-range-slider/tsconfig.spec.json",
+            "karmaConfig": "projects/time-range-slider/karma.conf.js"
+          }
+        }
+      }
     }
   }
 }

@@ -1,0 +1,16 @@
+{
+  "name": "@halolabs/ngx-time-range-slider",
+  "version": "1.0.0",
+  "description": "Angular 14 adaptive time range slider with zoom, granularity auto-detection, and PrimeNG integration",
+  "license": "MIT",
+  "peerDependencies": {
+    "@angular/common": "^14.2.0",
+    "@angular/core": "^14.2.0",
+    "@angular/forms": "^14.2.0",
+    "primeng": "^14.2.0",
+    "primeicons": "^6.0.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  }
+}

@@ -16,7 +16,7 @@ import { clampDate } from './utils/date-utils';
 const SLIDER_RESOLUTION = 10000;
 
 @Component({
-  selector: 'app-time-range-slider',
+  selector: 'ntr-time-range-slider',
   templateUrl: './time-range-slider.component.html',
   styleUrls: ['./time-range-slider.component.scss'],
   providers: [
