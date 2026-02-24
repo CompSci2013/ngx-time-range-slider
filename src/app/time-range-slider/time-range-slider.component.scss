@@ -1,7 +1,7 @@
 .time-range-slider {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   padding: 16px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
@@ -11,66 +11,10 @@
   }
 }
 
-.selection-display {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-
-  .selection-label {
-    padding: 4px 8px;
-    background: #f0f0f0;
-    border-radius: 4px;
-  }
-
-  .selection-separator {
-    color: #999;
-  }
-}
-
-.slider-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.zoom-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: #fff;
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
-
-  &:hover:not(:disabled) {
-    background: #f0f0f0;
-    border-color: #999;
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  i {
-    font-size: 12px;
-    color: #666;
-  }
-}
-
 .slider-container {
-  flex: 1;
   position: relative;
-  padding-top: 28px; // Space for thumb labels above
-  padding-bottom: 32px; // Space for tick labels below
+  padding-top: 28px;
+  padding-bottom: 40px;
 
   ::ng-deep .p-slider {
     background: #e0e0e0;
@@ -119,28 +63,14 @@
   padding: 2px 6px;
   border-radius: 3px;
   white-space: nowrap;
-
-  &.start-label {
-    // Prevent going off left edge
-    &[style*="left: 0%"] {
-      transform: translateX(0);
-    }
-  }
-
-  &.end-label {
-    // Prevent going off right edge
-    &[style*="left: 100%"] {
-      transform: translateX(-100%);
-    }
-  }
 }
 
 .tick-container {
   position: absolute;
-  top: 44px; // 28px padding-top + 16px for slider
+  top: 44px;
   left: 0;
   right: 0;
-  height: 28px;
+  height: 36px;
 }
 
 .tick {
@@ -161,12 +91,74 @@
     margin-top: 2px;
     text-align: center;
   }
+
+  &.major {
+    .tick-mark {
+      height: 14px;
+      background: #999;
+    }
+
+    .major-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #333;
+      white-space: nowrap;
+      margin-top: 2px;
+      text-align: center;
+    }
+  }
+}
+
+.footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 24px;
+}
+
+.zoom-hint {
+  font-size: 10px;
+  color: transparent;
+  transition: color 0.15s;
+  user-select: none;
+
+  &.active {
+    color: #3b82f6;
+  }
 }
 
 .granularity-indicator {
-  text-align: center;
   font-size: 11px;
   color: #999;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.zoom-controls {
+  display: flex;
+  gap: 4px;
+
+  .zoom-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.15s;
+    padding: 0;
+
+    &:hover {
+      background: #f0f0f0;
+      border-color: #999;
+    }
+
+    i {
+      font-size: 11px;
+      color: #666;
+    }
+  }
 }

@@ -17,18 +17,16 @@ export class AppComponent {
   // Demo with reactive forms
   rangeControl = new FormControl<DateRange | null>(null);
 
-  // Bounds for demo
-  minDate = new Date('2000-01-01');
-  maxDate = new Date('2030-12-31');
+  // Base case: data spans Sep 3 1995 — Feb 11 2026
+  minDate = new Date('1995-09-03');
+  maxDate = new Date('2026-02-11');
 
   onRangeChange(range: DateRange): void {
     this.currentRange = range;
-    console.log('Range changed:', range);
   }
 
   onGranularityChange(level: GranularityLevel): void {
     this.currentGranularity = level;
-    console.log('Granularity changed:', level);
   }
 
   setPresetRange(): void {

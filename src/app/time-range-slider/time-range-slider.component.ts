@@ -6,11 +6,16 @@ import {
   OnInit,
   forwardRef,
   OnChanges,
-  SimpleChanges
+  SimpleChanges,
+  HostListener,
+  ElementRef
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { DateRange, GranularityLevel, OutputFormat } from './models';
 import { GranularityService } from './services/granularity.service';
+import { clampDate } from './utils/date-utils';
+
+const SLIDER_RESOLUTION = 10000;
 
 @Component({
   selector: 'app-time-range-slider',
@@ -25,10 +30,9 @@ import { GranularityService } from './services/granularity.service';
   ]
 })
 export class TimeRangeSliderComponent implements OnInit, OnChanges, ControlValueAccessor {
-  @Input() minDate: Date = new Date('1970-01-01');
-  @Input() maxDate: Date = new Date('2099-12-31');
+  @Input() minDate!: Date;
+  @Input() maxDate!: Date;
   @Input() outputFormat: OutputFormat = 'date';
-  @Input() initialGranularity: GranularityLevel = 'years';
   @Input() disabled: boolean = false;
 
   @Output() rangeChange = new EventEmitter<DateRange>();
@@ -36,124 +40,282 @@ export class TimeRangeSliderComponent implements OnInit, OnChanges, ControlValue
 
   // Internal state
   currentLevel: GranularityLevel = 'years';
-  extentStart!: Date;
-  extentEnd!: Date;
-  sliderValues: number[] = [0, 100];
-  sliderMax: number = 100;
+  sliderValues: number[] = [0, SLIDER_RESOLUTION];
+  sliderMax: number = SLIDER_RESOLUTION;
+
+  // View extent (what the slider currently represents)
+  viewStart!: Date;
+  viewEnd!: Date;
+
+  // Extent history for zoom-out
+  private extentStack: { start: Date; end: Date }[] = [];
 
   // Tick labels
-  tickLabels: { position: number; label: string }[] = [];
+  tickLabels: { position: number; label: string; major: boolean; majorLabel?: string }[] = [];
+
+  // Tracked selection dates (precise — not derived from slider positions)
+  private selectionStart!: Date;
+  private selectionEnd!: Date;
 
   // Display values
   selectionStartLabel: string = '';
   selectionEndLabel: string = '';
+  granularityLabel: string = 'Years';
+
+  // Zoom key state
+  zoomKeyHeld: boolean = false;
+  isZoomed: boolean = false;
 
   // Thumb positions (percentage)
   get startThumbPosition(): number {
-    return this.sliderMax > 0 ? (this.sliderValues[0] / this.sliderMax) * 100 : 0;
+    return (this.sliderValues[0] / SLIDER_RESOLUTION) * 100;
   }
 
   get endThumbPosition(): number {
-    return this.sliderMax > 0 ? (this.sliderValues[1] / this.sliderMax) * 100 : 100;
+    return (this.sliderValues[1] / SLIDER_RESOLUTION) * 100;
+  }
+
+  // Can zoom in: selection is narrower than the full view
+  get canZoomIn(): boolean {
+    return this.sliderValues[0] > 0 || this.sliderValues[1] < SLIDER_RESOLUTION;
   }
 
   // ControlValueAccessor
   private onChange: (value: DateRange | null) => void = () => {};
   private onTouched: () => void = () => {};
 
-  constructor(private granularityService: GranularityService) {}
+  private viewMs: number = 0;
+
+  constructor(
+    private granularityService: GranularityService,
+    private elRef: ElementRef
+  ) {}
+
+  @HostListener('window:keydown', ['$event'])
+  onKeyDown(event: KeyboardEvent): void {
+    const key = event.key.toLowerCase();
+    if (key === 'z' || key === 'control') {
+      this.zoomKeyHeld = true;
+    }
+  }
+
+  @HostListener('window:keyup', ['$event'])
+  onKeyUp(event: KeyboardEvent): void {
+    const key = event.key.toLowerCase();
+    if (key === 'z' || key === 'control') {
+      this.zoomKeyHeld = false;
+    }
+  }
 
   ngOnInit(): void {
-    this.currentLevel = this.initialGranularity;
-    this.initializeExtent();
+    this.initialize();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['minDate'] || changes['maxDate']) {
-      this.initializeExtent();
+      this.initialize();
     }
   }
 
-  private initializeExtent(): void {
-    // Default extent based on current granularity
-    const config = this.granularityService.getConfig(this.currentLevel);
+  private initialize(): void {
+    if (!this.minDate || !this.maxDate) return;
 
-    // Start with natural extent around current date or minDate
-    const now = new Date();
-    const referenceDate = now.getTime() >= this.minDate.getTime() && now.getTime() <= this.maxDate.getTime()
-      ? now
-      : this.minDate;
+    this.viewStart = new Date(this.minDate.getTime());
+    this.viewEnd = new Date(this.maxDate.getTime());
+    this.viewMs = this.viewEnd.getTime() - this.viewStart.getTime();
+    if (this.viewMs <= 0) return;
 
-    const naturalExtent = config.naturalExtent(referenceDate);
-    this.extentStart = new Date(Math.max(naturalExtent.start.getTime(), this.minDate.getTime()));
-    this.extentEnd = new Date(Math.min(naturalExtent.end.getTime(), this.maxDate.getTime()));
+    this.extentStack = [];
+    this.isZoomed = false;
 
-    this.updateSliderRange();
-    this.updateTickLabels();
+    this.currentLevel = this.granularityService.initialGranularity(this.viewMs);
+    this.granularityLabel = this.granularityService.getConfig(this.currentLevel).label;
 
-    // Set initial selection to full extent
-    this.sliderValues = [0, this.sliderMax];
+    this.sliderValues = [0, SLIDER_RESOLUTION];
+    this.selectionStart = new Date(this.viewStart.getTime());
+    this.selectionEnd = new Date(this.viewEnd.getTime());
     this.updateLabels();
+    this.updateTicks();
   }
 
-  private updateSliderRange(): void {
-    this.sliderMax = this.granularityService.calculateSteps(
-      this.extentStart,
-      this.extentEnd,
-      this.currentLevel
-    );
+  // --- Date/slider conversion (relative to view extent) ---
+
+  private sliderToDate(value: number): Date {
+    const ratio = value / SLIDER_RESOLUTION;
+    const ms = this.viewStart.getTime() + ratio * this.viewMs;
+    return new Date(ms);
   }
 
-  private updateTickLabels(): void {
-    this.tickLabels = this.granularityService.generateTickLabels(
-      this.extentStart,
-      this.extentEnd,
-      this.currentLevel,
-      8
-    );
+  private dateToSlider(date: Date): number {
+    const ratio = (date.getTime() - this.viewStart.getTime()) / this.viewMs;
+    return Math.round(Math.max(0, Math.min(SLIDER_RESOLUTION, ratio * SLIDER_RESOLUTION)));
   }
 
-  private updateLabels(): void {
-    const config = this.granularityService.getConfig(this.currentLevel);
-    const startDate = this.granularityService.sliderValueToDate(
-      this.sliderValues[0],
-      this.extentStart,
-      this.currentLevel
-    );
-    const endDate = this.granularityService.sliderValueToDate(
-      this.sliderValues[1],
-      this.extentStart,
-      this.currentLevel
-    );
-    this.selectionStartLabel = config.labelFormat(startDate);
-    this.selectionEndLabel = config.labelFormat(endDate);
+  // --- Zoom ---
+
+  zoomIn(): void {
+    if (this.disabled || !this.canZoomIn) return;
+
+    // Use tracked dates — these are the exact dates shown in the thumb labels
+    const selStart = new Date(this.selectionStart.getTime());
+    const selEnd = new Date(this.selectionEnd.getTime());
+
+    // Push current view onto stack
+    this.extentStack.push({ start: new Date(this.viewStart.getTime()), end: new Date(this.viewEnd.getTime()) });
+
+    // Set new view to current selection (exact dates, no rounding)
+    this.viewStart = selStart;
+    this.viewEnd = selEnd;
+    this.viewMs = this.viewEnd.getTime() - this.viewStart.getTime();
+    this.isZoomed = true;
+
+    // Reset thumbs to full extent — selection now spans the entire view
+    this.sliderValues = [0, SLIDER_RESOLUTION];
+    this.selectionStart = new Date(selStart.getTime());
+    this.selectionEnd = new Date(selEnd.getTime());
+
+    // Recalculate granularity for new view
+    this.currentLevel = this.granularityService.initialGranularity(this.viewMs);
+    this.granularityLabel = this.granularityService.getConfig(this.currentLevel).label;
+    this.granularityChange.emit(this.currentLevel);
+
+    this.updateLabels();
+    this.updateTicks();
+    this.emitRange();
   }
+
+  zoomOut(): void {
+    if (this.disabled || this.extentStack.length === 0) return;
+
+    // Use tracked dates — exact selection preserved
+    const selStart = new Date(this.selectionStart.getTime());
+    const selEnd = new Date(this.selectionEnd.getTime());
+
+    // Pop previous view from stack
+    const prev = this.extentStack.pop()!;
+    this.viewStart = prev.start;
+    this.viewEnd = prev.end;
+    this.viewMs = this.viewEnd.getTime() - this.viewStart.getTime();
+    this.isZoomed = this.extentStack.length > 0;
+
+    // Map the selection back onto the restored view
+    this.sliderValues = [
+      this.dateToSlider(selStart),
+      this.dateToSlider(selEnd)
+    ];
+
+    // Granularity based on view extent
+    this.currentLevel = this.granularityService.initialGranularity(this.viewMs);
+    this.granularityLabel = this.granularityService.getConfig(this.currentLevel).label;
+    this.granularityChange.emit(this.currentLevel);
+
+    this.updateLabels();
+    this.updateTicks();
+    this.emitRange();
+  }
+
+  resetZoom(): void {
+    if (this.disabled || !this.isZoomed) return;
+
+    // Use tracked dates — exact selection preserved
+    const selStart = new Date(this.selectionStart.getTime());
+    const selEnd = new Date(this.selectionEnd.getTime());
+
+    // Reset to full data range
+    this.viewStart = new Date(this.minDate.getTime());
+    this.viewEnd = new Date(this.maxDate.getTime());
+    this.viewMs = this.viewEnd.getTime() - this.viewStart.getTime();
+    this.extentStack = [];
+    this.isZoomed = false;
+
+    // Map selection back to full range
+    this.sliderValues = [
+      this.dateToSlider(selStart),
+      this.dateToSlider(selEnd)
+    ];
+
+    // Granularity based on view extent
+    this.currentLevel = this.granularityService.initialGranularity(this.viewMs);
+    this.granularityLabel = this.granularityService.getConfig(this.currentLevel).label;
+    this.granularityChange.emit(this.currentLevel);
+
+    this.updateLabels();
+    this.updateTicks();
+    this.emitRange();
+  }
+
+  // Intercept mousedown to handle zoom before slider can move
+  onSliderMousedown(event: MouseEvent): void {
+    if (this.disabled) return;
+
+    if (event.ctrlKey || this.zoomKeyHeld) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (this.canZoomIn) {
+        this.zoomIn();
+      }
+    }
+  }
+
+  // --- Event handling ---
 
   onSliderChange(values: number[]): void {
-    // Enforce minimum 1-step gap between thumbs
-    const minGap = 1;
     let [start, end] = values;
 
+    // Enforce minimum gap
+    const minGap = 1;
     if (end - start < minGap) {
-      // Determine which thumb moved and adjust the other
       if (this.sliderValues[0] !== start) {
-        // Start thumb moved - push it back
         start = Math.min(start, end - minGap);
       } else {
-        // End thumb moved - push it back
         end = Math.max(end, start + minGap);
       }
     }
 
-    // Clamp to valid range
-    start = Math.max(0, Math.min(start, this.sliderMax - minGap));
-    end = Math.min(this.sliderMax, Math.max(end, minGap));
+    start = Math.max(0, Math.min(start, SLIDER_RESOLUTION - minGap));
+    end = Math.min(SLIDER_RESOLUTION, Math.max(end, minGap));
 
     this.sliderValues = [start, end];
+
+    // Track precise dates from slider positions (fluid movement, no snapping)
+    this.selectionStart = this.sliderToDate(start);
+    this.selectionEnd = this.sliderToDate(end);
+
+    // Determine adaptive granularity
+    const selectionMs = this.selectionEnd.getTime() - this.selectionStart.getTime();
+    const newLevel = this.granularityService.determineGranularity(selectionMs, this.currentLevel);
+    if (newLevel !== this.currentLevel) {
+      this.currentLevel = newLevel;
+      this.granularityLabel = this.granularityService.getConfig(this.currentLevel).label;
+      this.granularityChange.emit(this.currentLevel);
+      this.updateTicks();
+    }
+
     this.updateLabels();
     this.emitRange();
     this.onTouched();
   }
+
+  // --- Label and tick updates ---
+
+  private updateLabels(): void {
+    const config = this.granularityService.getConfig(this.currentLevel);
+    this.selectionStartLabel = config.formatThumb(this.selectionStart);
+    this.selectionEndLabel = config.formatThumb(this.selectionEnd);
+  }
+
+  private updateTicks(): void {
+    // Ticks span the full view extent — they are fixed reference points
+    this.tickLabels = this.granularityService.generateTicks(
+      this.viewStart,
+      this.viewEnd,
+      this.currentLevel,
+      this.viewStart,
+      this.viewEnd
+    );
+  }
+
+  // --- Output ---
 
   private emitRange(): void {
     const range = this.getCurrentRange();
@@ -162,123 +324,24 @@ export class TimeRangeSliderComponent implements OnInit, OnChanges, ControlValue
   }
 
   private getCurrentRange(): DateRange {
-    const startDate = this.granularityService.sliderValueToDate(
-      this.sliderValues[0],
-      this.extentStart,
-      this.currentLevel
-    );
-    const endDate = this.granularityService.sliderValueToDate(
-      this.sliderValues[1],
-      this.extentStart,
-      this.currentLevel
-    );
-    return { start: startDate, end: endDate };
+    return { start: new Date(this.selectionStart.getTime()), end: new Date(this.selectionEnd.getTime()) };
   }
 
-  // Zoom controls
-  get canZoomIn(): boolean {
-    if (!this.granularityService.canZoomIn(this.currentLevel)) return false;
-    const range = this.getCurrentRange();
-    return this.granularityService.canZoomInSelection(range.start, range.end, this.currentLevel);
-  }
+  // --- ControlValueAccessor ---
 
-  get canZoomOut(): boolean {
-    return this.granularityService.canZoomOut(this.currentLevel);
-  }
-
-  zoomIn(): void {
-    if (!this.canZoomIn || this.disabled) return;
-
-    const range = this.getCurrentRange();
-    const newLevel = this.granularityService.zoomIn(this.currentLevel);
-    const { extentStart, extentEnd } = this.granularityService.calculateZoomInExtent(
-      range.start,
-      range.end,
-      newLevel
-    );
-
-    this.currentLevel = newLevel;
-    this.extentStart = extentStart;
-    this.extentEnd = extentEnd;
-
-    this.updateSliderRange();
-    this.updateTickLabels();
-
-    // Thumbs go to edges after zoom in
-    this.sliderValues = [0, this.sliderMax];
-    this.updateLabels();
-
-    this.granularityChange.emit(this.currentLevel);
-    this.emitRange();
-  }
-
-  zoomOut(): void {
-    if (!this.canZoomOut || this.disabled) return;
-
-    const range = this.getCurrentRange();
-    const newLevel = this.granularityService.zoomOut(this.currentLevel);
-    const { extentStart, extentEnd } = this.granularityService.calculateZoomOutExtent(
-      range.start,
-      range.end,
-      newLevel,
-      this.minDate,
-      this.maxDate
-    );
-
-    this.currentLevel = newLevel;
-    this.extentStart = extentStart;
-    this.extentEnd = extentEnd;
-
-    this.updateSliderRange();
-    this.updateTickLabels();
-
-    // Recalculate slider positions to preserve selection
-    const newStartValue = this.granularityService.dateToSliderValue(
-      range.start,
-      this.extentStart,
-      this.currentLevel
-    );
-    const newEndValue = this.granularityService.dateToSliderValue(
-      range.end,
-      this.extentStart,
-      this.currentLevel
-    );
-
-    // Snap outward to preserve full selection
-    this.sliderValues = [
-      Math.max(0, Math.floor(newStartValue)),
-      Math.min(this.sliderMax, Math.ceil(newEndValue))
-    ];
-
-    this.updateLabels();
-    this.granularityChange.emit(this.currentLevel);
-    this.emitRange();
-  }
-
-  // ControlValueAccessor implementation
   writeValue(value: DateRange | null): void {
-    if (value && value.start && value.end) {
-      // Calculate which level best represents this range
-      // For now, keep current level and adjust extent to contain the value
+    if (value && value.start && value.end && this.viewStart && this.viewEnd) {
+      const clampedStart = clampDate(value.start, this.viewStart, this.viewEnd);
+      const clampedEnd = clampDate(value.end, this.viewStart, this.viewEnd);
 
-      // Ensure extent contains the value
-      if (value.start.getTime() < this.extentStart.getTime() ||
-          value.end.getTime() > this.extentEnd.getTime()) {
-        // Expand extent to contain value
-        const config = this.granularityService.getConfig(this.currentLevel);
-        const startNatural = config.naturalExtent(value.start);
-        const endNatural = config.naturalExtent(value.end);
-        this.extentStart = new Date(Math.max(startNatural.start.getTime(), this.minDate.getTime()));
-        this.extentEnd = new Date(Math.min(endNatural.end.getTime(), this.maxDate.getTime()));
-        this.updateSliderRange();
-        this.updateTickLabels();
-      }
+      this.selectionStart = clampedStart;
+      this.selectionEnd = clampedEnd;
 
-      // Convert dates to slider values
       this.sliderValues = [
-        this.granularityService.dateToSliderValue(value.start, this.extentStart, this.currentLevel),
-        this.granularityService.dateToSliderValue(value.end, this.extentStart, this.currentLevel)
+        this.dateToSlider(this.selectionStart),
+        this.dateToSlider(this.selectionEnd)
       ];
+
       this.updateLabels();
     }
   }

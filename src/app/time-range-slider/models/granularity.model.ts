@@ -1,17 +1,18 @@
-export type GranularityLevel = 'decades' | 'years' | 'months' | 'days' | 'minutes' | 'deciseconds';
+export type GranularityLevel = 'years' | 'months' | 'days' | 'hours' | 'minutes' | 'seconds';
 
 export interface GranularityConfig {
   level: GranularityLevel;
-  stepMs: number;
-  labelFormat: (date: Date) => string;
-  naturalExtent: (date: Date) => { start: Date; end: Date };
+  label: string;
+  snapFn: (date: Date) => Date;
+  formatThumb: (date: Date) => string;
+  formatTick: (date: Date) => string;
 }
 
 export const GRANULARITY_ORDER: GranularityLevel[] = [
-  'decades',
   'years',
   'months',
   'days',
+  'hours',
   'minutes',
-  'deciseconds'
+  'seconds'
 ];

@@ -1,116 +1,130 @@
-/**
- * Get the start of a decade for a given date
- */
-export function startOfDecade(date: Date): Date {
-  const year = Math.floor(date.getFullYear() / 10) * 10;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// --- Snap functions (round to nearest boundary) ---
+
+export function snapToYear(date: Date): Date {
+  const year = date.getFullYear();
+  const mid = new Date(year, 6, 1);
+  if (date.getTime() >= mid.getTime()) {
+    return new Date(year + 1, 0, 1, 0, 0, 0, 0);
+  }
   return new Date(year, 0, 1, 0, 0, 0, 0);
 }
 
-/**
- * Get the end of a decade for a given date
- */
-export function endOfDecade(date: Date): Date {
-  const year = Math.floor(date.getFullYear() / 10) * 10 + 9;
-  return new Date(year, 11, 31, 23, 59, 59, 999);
-}
-
-/**
- * Get the start of a year for a given date
- */
-export function startOfYear(date: Date): Date {
-  return new Date(date.getFullYear(), 0, 1, 0, 0, 0, 0);
-}
-
-/**
- * Get the end of a year for a given date
- */
-export function endOfYear(date: Date): Date {
-  return new Date(date.getFullYear(), 11, 31, 23, 59, 59, 999);
-}
-
-/**
- * Get the start of a month for a given date
- */
-export function startOfMonth(date: Date): Date {
+export function snapToMonth(date: Date): Date {
+  const day = date.getDate();
+  if (day >= 16) {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 1, 0, 0, 0, 0);
+  }
   return new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
 }
 
-/**
- * Get the end of a month for a given date
- */
-export function endOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
-}
-
-/**
- * Get the start of a day for a given date
- */
-export function startOfDay(date: Date): Date {
+export function snapToDay(date: Date): Date {
+  const hour = date.getHours();
+  if (hour >= 12) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1, 0, 0, 0, 0);
+  }
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
 }
 
-/**
- * Get the end of a day for a given date
- */
-export function endOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+export function snapToHour(date: Date): Date {
+  const min = date.getMinutes();
+  if (min >= 30) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() + 1, 0, 0, 0);
+  }
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), 0, 0, 0);
 }
 
-/**
- * Get the start of a minute for a given date
- */
-export function startOfMinute(date: Date): Date {
+export function snapToMinute(date: Date): Date {
+  const sec = date.getSeconds();
+  if (sec >= 30) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes() + 1, 0, 0);
+  }
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), 0, 0);
 }
 
-/**
- * Get the end of a minute for a given date
- */
-export function endOfMinute(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), 59, 999);
+export function snapToSecond(date: Date): Date {
+  const ms = date.getMilliseconds();
+  if (ms >= 500) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds() + 1, 0);
+  }
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds(), 0);
 }
 
-/**
- * Clamp a date between min and max
- */
-export function clampDate(date: Date, min: Date, max: Date): Date {
-  if (date.getTime() < min.getTime()) return new Date(min);
-  if (date.getTime() > max.getTime()) return new Date(max);
-  return new Date(date);
+// --- Format functions ---
+
+export function formatFullDate(date: Date): string {
+  return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 }
 
-/**
- * Format helpers for labels
- */
-export function formatDecade(date: Date): string {
-  const decadeStart = Math.floor(date.getFullYear() / 10) * 10;
-  return `${decadeStart}s`;
+export function formatFullDateTime(date: Date): string {
+  return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export function formatYear(date: Date): string {
+export function formatFullDateTimeSec(date: Date): string {
+  return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+export function formatYearThumb(date: Date): string {
+  return formatFullDateTimeSec(date);
+}
+
+export function formatYearTick(date: Date): string {
   return date.getFullYear().toString();
 }
 
-export function formatMonth(date: Date): string {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${months[date.getMonth()]} ${date.getFullYear()}`;
+export function formatMonthThumb(date: Date): string {
+  return formatFullDateTimeSec(date);
 }
 
-export function formatDay(date: Date): string {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${months[date.getMonth()]} ${date.getDate()}`;
+export function formatMonthTick(date: Date): string {
+  // Short: "Oct '06" — full year only for January to anchor the viewer
+  if (date.getMonth() === 0) {
+    return `${date.getFullYear()}`;
+  }
+  return `${MONTHS[date.getMonth()]}`;
 }
 
-export function formatMinute(date: Date): string {
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${hours}:${minutes}`;
+export function formatDayThumb(date: Date): string {
+  return formatFullDateTimeSec(date);
 }
 
-export function formatDecisecond(date: Date): string {
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  const seconds = date.getSeconds().toString().padStart(2, '0');
-  const decisecond = Math.floor(date.getMilliseconds() / 100);
-  return `${hours}:${minutes}:${seconds}.${decisecond}`;
+export function formatDayTick(date: Date): string {
+  return `${MONTHS[date.getMonth()]} ${date.getDate()}`;
+}
+
+export function formatHourThumb(date: Date): string {
+  return formatFullDateTimeSec(date);
+}
+
+export function formatHourTick(date: Date): string {
+  return `${pad(date.getHours())}:00`;
+}
+
+export function formatMinuteThumb(date: Date): string {
+  return formatFullDateTimeSec(date);
+}
+
+export function formatMinuteTick(date: Date): string {
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+export function formatSecondThumb(date: Date): string {
+  return formatFullDateTimeSec(date);
+}
+
+export function formatSecondTick(date: Date): string {
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+function pad(n: number): string {
+  return n.toString().padStart(2, '0');
+}
+
+// --- Clamp ---
+
+export function clampDate(date: Date, min: Date, max: Date): Date {
+  if (date.getTime() < min.getTime()) return new Date(min.getTime());
+  if (date.getTime() > max.getTime()) return new Date(max.getTime());
+  return date;
 }

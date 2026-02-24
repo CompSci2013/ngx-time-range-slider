@@ -3,10 +3,10 @@
 
   <section class="demo-section">
     <h2>Basic Usage (Event Binding)</h2>
+    <p class="subtitle">Data range: Sep 3, 1995 — Feb 11, 2026</p>
     <app-time-range-slider
       [minDate]="minDate"
       [maxDate]="maxDate"
-      [initialGranularity]="'years'"
       (rangeChange)="onRangeChange($event)"
       (granularityChange)="onGranularityChange($event)"
     ></app-time-range-slider>
