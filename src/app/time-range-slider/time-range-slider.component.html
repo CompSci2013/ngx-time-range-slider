@@ -1,11 +1,4 @@
 <div class="time-range-slider" [class.disabled]="disabled">
-  <!-- Current selection display -->
-  <div class="selection-display">
-    <span class="selection-label">{{ selectionStartLabel }}</span>
-    <span class="selection-separator">—</span>
-    <span class="selection-label">{{ selectionEndLabel }}</span>
-  </div>
-
   <!-- Slider with zoom controls -->
   <div class="slider-row">
     <!-- Zoom out button -->
@@ -21,6 +14,16 @@
 
     <!-- Slider container -->
     <div class="slider-container">
+      <!-- Thumb labels (above slider) -->
+      <div class="thumb-labels">
+        <div class="thumb-label start-label" [style.left.%]="startThumbPosition">
+          {{ selectionStartLabel }}
+        </div>
+        <div class="thumb-label end-label" [style.left.%]="endThumbPosition">
+          {{ selectionEndLabel }}
+        </div>
+      </div>
+
       <p-slider
         [(ngModel)]="sliderValues"
         [range]="true"

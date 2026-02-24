@@ -48,6 +48,15 @@ export class TimeRangeSliderComponent implements OnInit, OnChanges, ControlValue
   selectionStartLabel: string = '';
   selectionEndLabel: string = '';
 
+  // Thumb positions (percentage)
+  get startThumbPosition(): number {
+    return this.sliderMax > 0 ? (this.sliderValues[0] / this.sliderMax) * 100 : 0;
+  }
+
+  get endThumbPosition(): number {
+    return this.sliderMax > 0 ? (this.sliderValues[1] / this.sliderMax) * 100 : 100;
+  }
+
   // ControlValueAccessor
   private onChange: (value: DateRange | null) => void = () => {};
   private onTouched: () => void = () => {};
@@ -121,7 +130,26 @@ export class TimeRangeSliderComponent implements OnInit, OnChanges, ControlValue
   }
 
   onSliderChange(values: number[]): void {
-    this.sliderValues = values;
+    // Enforce minimum 1-step gap between thumbs
+    const minGap = 1;
+    let [start, end] = values;
+
+    if (end - start < minGap) {
+      // Determine which thumb moved and adjust the other
+      if (this.sliderValues[0] !== start) {
+        // Start thumb moved - push it back
+        start = Math.min(start, end - minGap);
+      } else {
+        // End thumb moved - push it back
+        end = Math.max(end, start + minGap);
+      }
+    }
+
+    // Clamp to valid range
+    start = Math.max(0, Math.min(start, this.sliderMax - minGap));
+    end = Math.min(this.sliderMax, Math.max(end, minGap));
+
+    this.sliderValues = [start, end];
     this.updateLabels();
     this.emitRange();
     this.onTouched();
