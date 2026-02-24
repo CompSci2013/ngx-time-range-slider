@@ -1,8 +1,6 @@
 import {
   Component,
   Input,
-  Output,
-  EventEmitter,
   OnInit,
   forwardRef,
   OnChanges,
@@ -11,7 +9,7 @@ import {
   ElementRef
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { DateRange, GranularityLevel, OutputFormat } from './models';
+import { DateRange, GranularityLevel } from './models';
 import { GranularityService } from './services/granularity.service';
 import { clampDate } from './utils/date-utils';
 
@@ -32,11 +30,7 @@ const SLIDER_RESOLUTION = 10000;
 export class TimeRangeSliderComponent implements OnInit, OnChanges, ControlValueAccessor {
   @Input() minDate!: Date;
   @Input() maxDate!: Date;
-  @Input() outputFormat: OutputFormat = 'date';
   @Input() disabled: boolean = false;
-
-  @Output() rangeChange = new EventEmitter<DateRange>();
-  @Output() granularityChange = new EventEmitter<GranularityLevel>();
 
   // Internal state
   currentLevel: GranularityLevel = 'years';
@@ -51,7 +45,7 @@ export class TimeRangeSliderComponent implements OnInit, OnChanges, ControlValue
   private extentStack: { start: Date; end: Date }[] = [];
 
   // Tick labels
-  tickLabels: { position: number; label: string; major: boolean; majorLabel?: string }[] = [];
+  tickLabels: { position: number; label: string }[] = [];
 
   // Tracked selection dates (precise — not derived from slider positions)
   private selectionStart!: Date;
@@ -163,13 +157,13 @@ export class TimeRangeSliderComponent implements OnInit, OnChanges, ControlValue
     // Push current view onto stack
     this.extentStack.push({ start: new Date(this.viewStart.getTime()), end: new Date(this.viewEnd.getTime()) });
 
-    // Set new view to current selection (exact dates, no rounding)
+    // Set new view to current selection
     this.viewStart = selStart;
     this.viewEnd = selEnd;
     this.viewMs = this.viewEnd.getTime() - this.viewStart.getTime();
     this.isZoomed = true;
 
-    // Reset thumbs to full extent — selection now spans the entire view
+    // Reset thumbs to full extent
     this.sliderValues = [0, SLIDER_RESOLUTION];
     this.selectionStart = new Date(selStart.getTime());
     this.selectionEnd = new Date(selEnd.getTime());
@@ -177,7 +171,6 @@ export class TimeRangeSliderComponent implements OnInit, OnChanges, ControlValue
     // Recalculate granularity for new view
     this.currentLevel = this.granularityService.initialGranularity(this.viewMs);
     this.granularityLabel = this.granularityService.getConfig(this.currentLevel).label;
-    this.granularityChange.emit(this.currentLevel);
 
     this.updateLabels();
     this.updateTicks();
@@ -207,7 +200,6 @@ export class TimeRangeSliderComponent implements OnInit, OnChanges, ControlValue
     // Granularity based on view extent
     this.currentLevel = this.granularityService.initialGranularity(this.viewMs);
     this.granularityLabel = this.granularityService.getConfig(this.currentLevel).label;
-    this.granularityChange.emit(this.currentLevel);
 
     this.updateLabels();
     this.updateTicks();
@@ -237,7 +229,6 @@ export class TimeRangeSliderComponent implements OnInit, OnChanges, ControlValue
     // Granularity based on view extent
     this.currentLevel = this.granularityService.initialGranularity(this.viewMs);
     this.granularityLabel = this.granularityService.getConfig(this.currentLevel).label;
-    this.granularityChange.emit(this.currentLevel);
 
     this.updateLabels();
     this.updateTicks();
@@ -287,8 +278,6 @@ export class TimeRangeSliderComponent implements OnInit, OnChanges, ControlValue
     if (newLevel !== this.currentLevel) {
       this.currentLevel = newLevel;
       this.granularityLabel = this.granularityService.getConfig(this.currentLevel).label;
-      this.granularityChange.emit(this.currentLevel);
-      this.updateTicks();
     }
 
     this.updateLabels();
@@ -305,7 +294,7 @@ export class TimeRangeSliderComponent implements OnInit, OnChanges, ControlValue
   }
 
   private updateTicks(): void {
-    // Ticks span the full view extent — they are fixed reference points
+    // Ticks span the full view extent
     this.tickLabels = this.granularityService.generateTicks(
       this.viewStart,
       this.viewEnd,
@@ -319,7 +308,6 @@ export class TimeRangeSliderComponent implements OnInit, OnChanges, ControlValue
 
   private emitRange(): void {
     const range = this.getCurrentRange();
-    this.rangeChange.emit(range);
     this.onChange(range);
   }
 

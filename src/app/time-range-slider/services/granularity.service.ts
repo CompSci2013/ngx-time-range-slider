@@ -251,7 +251,8 @@ export class GranularityService {
 
   private generateTickDates(start: Date, end: Date, level: GranularityLevel): Date[] {
     const dates: Date[] = [];
-    const MAX_TICKS = 7;
+    const MAX_TICKS = 12;
+    const rangeMs = end.getTime() - start.getTime();
 
     switch (level) {
       case 'years': {
@@ -259,8 +260,7 @@ export class GranularityService {
         const endYear = end.getFullYear();
         const span = endYear - startYear;
         const step = Math.max(1, Math.ceil(span / MAX_TICKS));
-        const firstYear = Math.ceil(startYear / step) * step;
-        for (let y = firstYear; y <= endYear; y += step) {
+        for (let y = startYear; y <= endYear; y += step) {
           dates.push(new Date(y, 0, 1));
         }
         break;
@@ -276,42 +276,49 @@ export class GranularityService {
         break;
       }
       case 'days': {
-        const totalDays = Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+        const totalDays = Math.ceil(rangeMs / (24 * 60 * 60 * 1000));
         const step = Math.max(1, Math.ceil(totalDays / MAX_TICKS));
         let current = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-        while (current.getTime() <= end.getTime()) {
-          dates.push(new Date(current));
-          current = new Date(current.getFullYear(), current.getMonth(), current.getDate() + step);
+        // If we have very few days, ensure we at least show every day
+        for (let i = 0; i <= totalDays; i += step) {
+          const d = new Date(current.getTime() + i * 24 * 60 * 60 * 1000);
+          if (d.getTime() <= end.getTime()) dates.push(d);
         }
         break;
       }
       case 'hours': {
-        const totalHours = Math.ceil((end.getTime() - start.getTime()) / (60 * 60 * 1000));
+        const totalHours = Math.ceil(rangeMs / (60 * 60 * 1000));
         const step = Math.max(1, Math.ceil(totalHours / MAX_TICKS));
-        let current = new Date(start.getFullYear(), start.getMonth(), start.getDate(), start.getHours());
-        while (current.getTime() <= end.getTime()) {
-          dates.push(new Date(current));
-          current = new Date(current.getTime() + step * 60 * 60 * 1000);
+        for (let i = 0; i <= totalHours; i += step) {
+          const d = new Date(start.getTime() + i * 60 * 60 * 1000);
+          d.setMinutes(0, 0, 0);
+          if (d.getTime() >= start.getTime() && d.getTime() <= end.getTime()) {
+            dates.push(d);
+          }
         }
         break;
       }
       case 'minutes': {
-        const totalMinutes = Math.ceil((end.getTime() - start.getTime()) / (60 * 1000));
+        const totalMinutes = Math.ceil(rangeMs / (60 * 1000));
         const step = Math.max(1, Math.ceil(totalMinutes / MAX_TICKS));
-        let current = new Date(start.getFullYear(), start.getMonth(), start.getDate(), start.getHours(), start.getMinutes());
-        while (current.getTime() <= end.getTime()) {
-          dates.push(new Date(current));
-          current = new Date(current.getTime() + step * 60 * 1000);
+        for (let i = 0; i <= totalMinutes; i += step) {
+          const d = new Date(start.getTime() + i * 60 * 1000);
+          d.setSeconds(0, 0);
+          if (d.getTime() >= start.getTime() && d.getTime() <= end.getTime()) {
+            dates.push(d);
+          }
         }
         break;
       }
       case 'seconds': {
-        const totalSeconds = Math.ceil((end.getTime() - start.getTime()) / 1000);
+        const totalSeconds = Math.ceil(rangeMs / 1000);
         const step = Math.max(1, Math.ceil(totalSeconds / MAX_TICKS));
-        let current = new Date(start.getFullYear(), start.getMonth(), start.getDate(), start.getHours(), start.getMinutes(), start.getSeconds());
-        while (current.getTime() <= end.getTime()) {
-          dates.push(new Date(current));
-          current = new Date(current.getTime() + step * 1000);
+        for (let i = 0; i <= totalSeconds; i += step) {
+          const d = new Date(start.getTime() + i * 1000);
+          d.setMilliseconds(0);
+          if (d.getTime() >= start.getTime() && d.getTime() <= end.getTime()) {
+            dates.push(d);
+          }
         }
         break;
       }

@@ -25,12 +25,10 @@
       <div
         *ngFor="let tick of tickLabels"
         class="tick"
-        [class.major]="tick.major"
         [style.left.%]="tick.position"
       >
         <div class="tick-mark"></div>
-        <div class="tick-label" *ngIf="!tick.major">{{ tick.label }}</div>
-        <div class="tick-label major-label" *ngIf="tick.major">{{ tick.majorLabel || tick.label }}</div>
+        <div class="tick-label">{{ tick.label }}</div>
       </div>
     </div>
   </div>

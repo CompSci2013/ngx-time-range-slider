@@ -1,39 +1,23 @@
-<div class="demo-container">
-  <h1>TimeRangeSlider Demo</h1>
-
-  <section class="demo-section">
-    <h2>Basic Usage (Event Binding)</h2>
-    <p class="subtitle">Data range: Sep 3, 1995 — Feb 11, 2026</p>
-    <app-time-range-slider
-      [minDate]="minDate"
+<div style="max-width: 800px; margin: 40px auto; padding: 20px;">
+  <h1>Angular Time Range Slider</h1>
+  
+  <section style="margin-top: 40px; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
+    <h2>Reactive Forms Demo</h2>
+    <p>Using <code>[formControl]="rangeControl"</code></p>
+    
+    <app-time-range-slider 
+      [minDate]="minDate" 
       [maxDate]="maxDate"
-      (rangeChange)="onRangeChange($event)"
-      (granularityChange)="onGranularityChange($event)"
-    ></app-time-range-slider>
+      [formControl]="rangeControl">
+    </app-time-range-slider>
 
-    <div class="output" *ngIf="currentRange">
-      <p><strong>Selected Range:</strong></p>
-      <p>Start: {{ currentRange.start | date:'medium' }}</p>
-      <p>End: {{ currentRange.end | date:'medium' }}</p>
-      <p>Granularity: {{ currentGranularity }}</p>
-    </div>
-  </section>
-
-  <section class="demo-section">
-    <h2>Reactive Forms Integration</h2>
-    <app-time-range-slider
-      [formControl]="rangeControl"
-      [minDate]="minDate"
-      [maxDate]="maxDate"
-    ></app-time-range-slider>
-
-    <div class="controls">
-      <button (click)="setPresetRange()">Set Preset (Jun-Aug 2024)</button>
-    </div>
-
-    <div class="output" *ngIf="rangeControl.value">
-      <p><strong>Form Value:</strong></p>
+    <div style="margin-top: 20px; padding: 10px; background: #f9f9f9; border-radius: 4px;">
+      <strong>Control Value:</strong>
       <pre>{{ rangeControl.value | json }}</pre>
     </div>
+
+    <button (click)="setPresetRange()" style="margin-top: 10px; padding: 8px 16px; cursor: pointer;">
+      Set Preset (June - Aug 2024)
+    </button>
   </section>
 </div>
